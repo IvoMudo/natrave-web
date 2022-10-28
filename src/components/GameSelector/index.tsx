@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useAsync, useLocalStorage } from "react-use";
-import { format, formatISO, add, sub } from "date-fns";
+import { format, add, sub, formatISO } from "date-fns";
 import { ptBR } from "date-fns/locale"
 
 import { Icon } from "../../components";
@@ -24,7 +24,7 @@ interface Props {
     changeActive: boolean
 }
 
-const gameList = await gameListURL('2022-11-20T10:00:00.000Z')
+// const gameList = await gameListURL('2022-11-20T10:00:00.000Z')
 
 export const GameSelector = ({ changeActive }: Props) => {
 
@@ -33,7 +33,12 @@ export const GameSelector = ({ changeActive }: Props) => {
 
     const [currentDate, setCurrentDate] = useState(new Date(2022, 10, 20))
 
-    const [matches, setMatches] = useState(gameList)
+    // const [matches, setMatches] = useState(gameList)
+    const matches = useAsync(async () => {
+        const json = await gameListURL(formatISO(currentDate))
+
+        return json
+    }, [currentDate])
 
     const score = useAsync(async () => {
         const BASE_URL = changeActive
@@ -48,15 +53,6 @@ export const GameSelector = ({ changeActive }: Props) => {
             return acc
         }, {})
         return { ...json, guesses }
-    }, [currentDate])
-
-    console.log(score.value)
-    useEffect(() => {
-        const changeDate = async () => {
-            const data = await gameListURL(formatISO(currentDate))
-            setMatches(data)
-        }
-        changeDate()
     }, [currentDate])
 
     return (
@@ -77,7 +73,7 @@ export const GameSelector = ({ changeActive }: Props) => {
                     : score.error
                         ? <div>{score.error.message}</div>
                         :
-                        matches.map((e: match) => {
+                        matches.value.map((e: match) => {
                             return (
                                 <Score
                                     changeActive={changeActive}
